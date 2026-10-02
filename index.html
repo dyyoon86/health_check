@@ -25,7 +25,7 @@ h1{font-size:22px;margin:0}
 .ptext{font-size:13px;color:var(--sub)}
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin:14px 0}
 .month{font-weight:700;margin:10px 0 6px}
-.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
 .dow{font-size:12px;color:var(--sub);text-align:center;padding:2px 0}
 .cell{min-height:64px;border:1px solid var(--line);border-radius:8px;padding:4px;cursor:pointer;background:var(--card);position:relative;font-size:12px;display:flex;flex-direction:column;gap:2px}
 .cell.empty{border:none;background:transparent;cursor:default}
@@ -60,6 +60,29 @@ th,td{border-bottom:1px solid var(--line);padding:6px;text-align:left}
 .warn{font-size:13px;color:var(--sub)}
 .warn li{margin:3px 0}
 .tools{display:flex;gap:8px;flex-wrap:wrap}
+ul.todo label{flex:1}
+button.g{flex:none;padding:3px 9px;font-size:12px;border-color:var(--accent);color:var(--accent)}
+.glist{display:flex;flex-wrap:wrap;gap:6px}
+dialog{border:none;border-radius:16px;padding:0;max-width:560px;width:calc(100% - 24px);background:var(--card);color:var(--text)}
+dialog::backdrop{background:rgba(0,0,0,.5)}
+.dlg{padding:18px 18px 8px;max-height:85vh;overflow:auto}
+.dlg .close{position:sticky;top:0;float:right}
+.fig{width:100%;height:auto;display:block;margin:8px auto;color:var(--accent);background:var(--bg);border-radius:10px}
+.fig .b{fill:none;stroke:var(--text);stroke-width:4;stroke-linecap:round;stroke-linejoin:round}
+.fig .hd{fill:var(--text)}
+.fig .gr{stroke:var(--sub);stroke-width:1.5;opacity:.5}
+.fig .sep{stroke:var(--line);stroke-dasharray:3 3}
+.fig .cap{font-size:10px;fill:var(--sub)}
+.fig .at{font-size:9px;fill:var(--accent);font-weight:700}
+.fig .ar{stroke:currentColor;stroke-width:2;marker-end:url(#ah)}
+.fig .ds{stroke:var(--accent);stroke-width:1.5;stroke-dasharray:4 3;fill:none}
+.fig .pr{stroke:var(--sub);stroke-width:4;stroke-linecap:round}
+.fig .rc{fill:none;stroke:var(--sub);stroke-width:2}
+.fig .ci{fill:none;stroke:var(--accent);stroke-width:2;stroke-dasharray:3 2}
+ul.cues,ul.bad{padding-left:0;list-style:none;margin:6px 0;font-size:14px}
+ul.cues li::before{content:"✔ ";color:var(--done);font-weight:700}
+ul.bad li::before{content:"✗ ";color:var(--C);font-weight:700}
+ul.cues li,ul.bad li{margin:4px 0}
 @media (max-width:520px){ .cell{min-height:52px;font-size:11px} .cell .tag{font-size:10px;padding:0 3px} h1{font-size:19px} .dday{font-size:24px} }
 </style>
 </head>
@@ -81,6 +104,14 @@ th,td{border-bottom:1px solid var(--line);padding:6px;text-align:left}
     <div class="legend" id="legend"></div>
     <div id="cal"></div>
   </div>
+
+  <div class="card">
+    <h2>자세 가이드</h2>
+    <p class="warn">운동 목록의 <b>자세</b> 버튼을 눌러도 열립니다. 공식 측정 방법은 <a href="https://nfa.kspo.or.kr/reserve/0/selectMeasureItemListByAgeSe.kspo" target="_blank" rel="noopener">국민체력100 측정항목</a> 참고.</p>
+    <div class="glist" id="glist"></div>
+  </div>
+
+  <dialog id="dlg"><div class="dlg"><button class="close" id="dlgClose">닫기 ✕</button><div id="dlgBody"></div></div></dialog>
 
   <div class="card">
     <h2>3등급 기준 (40~44세 남)</h2>
@@ -117,6 +148,7 @@ th,td{border-bottom:1px solid var(--line);padding:6px;text-align:left}
   </div>
 </div>
 
+<script src="guides.js"></script>
 <script>
 const START = '2026-10-02', TEST = '2026-11-10';
 const COLORS = {A:'var(--A)',B:'var(--B)',C:'var(--C)',W:'var(--W)',X:'var(--X)',M:'var(--M)',T:'var(--T)',S:'var(--accent)'};
@@ -240,7 +272,7 @@ function renderDetail(){
   const items=[...p.main.map((t,i)=>['m'+i,t]), ...p.base.map((t,i)=>['b'+i,t])];
   let html=`<h2><span class="badge" style="background:${COLORS[p.code]}">${p.code}</span>${dt.getMonth()+1}월 ${dt.getDate()}일 (${DOW[dt.getDay()]}) · ${NAMES[p.code]}${k===todayKey?' · 오늘':''}</h2>`;
   if(p.note) html+=`<div class="memo">${p.note}</div>`;
-  const li=([id,t])=>`<li class="${d.c[id]?'chk':''}"><input type="checkbox" id="c_${id}" data-id="${id}" ${d.c[id]?'checked':''}><label for="c_${id}">${t}</label></li>`;
+  const li=([id,t])=>{ const g=guideKey(t); return `<li class="${d.c[id]?'chk':''}"><input type="checkbox" id="c_${id}" data-id="${id}" ${d.c[id]?'checked':''}><label for="c_${id}">${t}</label>${g?`<button class="g" data-g="${g}">자세</button>`:''}</li>`; };
   if(p.main.length){ html+=`<div class="sec">${p.code==='T'?'당일 요령':'운동'}</div><ul class="todo">${p.main.map((t,i)=>li(['m'+i,t])).join('')}</ul>`; }
   if(p.base.length){ html+=`<div class="sec">매일 기본</div><ul class="todo">${p.base.map((t,i)=>li(['b'+i,t])).join('')}</ul>`; }
   const f=recFields(p.code);
@@ -251,6 +283,7 @@ function renderDetail(){
   const el=document.getElementById('detail'); el.innerHTML=html;
   el.querySelectorAll('input[type=checkbox]').forEach(c=>c.onchange=()=>{d.c[c.dataset.id]=c.checked; save(); renderAll();});
   el.querySelectorAll('input[data-r]').forEach(c=>c.onchange=()=>{const v=c.value.trim(); if(v==='') delete d.r[c.dataset.r]; else d.r[c.dataset.r]=Number(v); save(); renderHist();});
+  el.querySelectorAll('button.g').forEach(b=>b.onclick=()=>openGuide(b.dataset.g));
   el.querySelector('#memo').onchange=e=>{d.m=e.target.value; save();};
   el.querySelector('#prev').onclick=()=>{sel=DAYS[i-1]; renderAll();};
   el.querySelector('#next').onclick=()=>{sel=DAYS[i+1]; renderAll();};
@@ -277,6 +310,13 @@ document.getElementById('imp').onchange=e=>{
   const f=e.target.files[0]; if(!f) return;
   f.text().then(t=>{ try{ store=JSON.parse(t); save(); renderAll(); alert('복원 완료'); }catch(err){ alert('파일 형식이 올바르지 않습니다'); } });
 };
+
+const dlg=document.getElementById('dlg');
+function openGuide(k){ document.getElementById('dlgBody').innerHTML=guideHTML(k); dlg.showModal(); dlg.querySelector('.dlg').scrollTop=0; }
+document.getElementById('dlgClose').onclick=()=>dlg.close();
+dlg.addEventListener('click',e=>{ if(e.target===dlg) dlg.close(); });
+document.getElementById('glist').innerHTML=Object.keys(GUIDES).map(k=>`<button class="g" data-g="${k}">${GUIDES[k].title}</button>`).join('');
+document.querySelectorAll('#glist button').forEach(b=>b.onclick=()=>openGuide(b.dataset.g));
 
 renderLegend(); renderAll();
 </script>
